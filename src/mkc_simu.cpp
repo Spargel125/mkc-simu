@@ -1,12 +1,26 @@
 #include<iostream>   
 #include<fstream>    
 #include<array>
+#include<vector>
 #include<boost/numeric/odeint.hpp>
 #include"matplotlibcpp.h"
 
+using namespace std;
 using namespace boost::numeric::odeint;
+namespace plt = matplotlibcpp;
 
 
+typedef vector< double > container_type;
+using state = array<double, 2>;
+
+
+    const double tstart = 0;
+    const double tend = 5;
+    const double dt = 0.05;
+    const int length = (int)(tend/dt)+1;
+    double tout[length];
+    double xout[length][2];
+    int i=0;
 
 struct mkc_system {
     public:
@@ -29,6 +43,7 @@ struct mkc_system {
         }
 };
 
+/*
 //csv形式で軌道を記録するobserver
 struct csv_observer{
     using state = mkc_system::state;
@@ -39,6 +54,7 @@ struct csv_observer{
         fout << t << "," << x[0] << "," << x[1] << std::endl;
     }
 };
+*/
 
 int main(){
     int m=1;
@@ -54,13 +70,30 @@ int main(){
     //4次のルンゲクッタ法を使ってみる
     //boost::numeric::odeint::runge_kutta4<mkc_system::state> Stepper;
     
-    //observerを用意する
-    csv_observer Observer("result1.csv");
 
-    //time = 0 -> 5まで、時間発展を計算してみる
-    boost::numeric::odeint::integrate_const(
-           Stepper, System, State, 0.0, 5.0, 0.05, std::ref(Observer)
-        );
 
+    boost::numeric::odeint::integrate_const(Stepper, System, State, tstart,tend, dt, 
+    [&](const state &x, const double t) //ステップ毎に実行される関数.
+    {
+        //標準出力へ
+        tout[i] = t;
+        xout[i][0] = x[0];
+        xout[i][1] = x[1];
+        i++;
+    });
+
+
+    cout<<"matplotlib-cpp sample start"<<endl;
+
+    vector<double> x(length), y(length);
+    for(int i=0; i<length; ++i) {
+    x.at(i) = tout[i];
+    y.at(i) = xout[i][0];
+    }
+
+    plt::plot(x, y, "--r");
+    plt::show();
     std::cout << "time=10 " << "x=" << State[0] << " " << "y=" << State[1] << std::endl;
+
+    return 0;
 }
